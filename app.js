@@ -1,402 +1,202 @@
-/* NovaBank — tout est stocké dans le navigateur (localStorage). */
-const $ = s => document.querySelector(s);
-const $$ = s => [...document.querySelectorAll(s)];
-const DB_KEY = 'novabank_db', SES_KEY = 'novabank_session';
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaBank</title>
+<style>
+  :root{--bg:#0f1220;--panel:#171b2e;--panel2:#1f2440;--txt:#eef0ff;--mut:#8b91b8;--acc:#6c5ce7;--acc2:#00cec9;--ok:#2ecc71;--ko:#ff6b6b;--warn:#fdcb6e;--r:18px;--line:#262c50}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+  body{background:radial-gradient(1200px 600px at 10% -10%,#262b55 0,transparent 60%),var(--bg);color:var(--txt);min-height:100vh}
+  button{cursor:pointer;border:0;color:inherit;font-size:inherit}
+  input,select,textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #2c3258;background:var(--panel2);color:var(--txt);font-size:15px;outline:none}
+  input:focus,select:focus{border-color:var(--acc)}
+  label{font-size:12px;color:var(--mut);display:block;margin:12px 0 6px}
+  .btn{background:linear-gradient(135deg,var(--acc),#8e7dff);padding:12px 18px;border-radius:12px;font-weight:600;font-size:15px;width:100%;margin-top:16px;transition:.15s}
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.1)}
+  .btn.ghost{background:var(--panel2);width:auto;margin:0;padding:10px 16px;font-size:14px}
+  .btn.sm{width:auto;margin:0;padding:8px 14px;font-size:13px}
+  .btn.danger{background:#3a1f2c;color:var(--ko)}
+  .hidden{display:none!important}
 
-let db = load();
-let me = localStorage.getItem(SES_KEY);
-let view = 'home';
-let masked = false;
-let preTo = '';       // bénéficiaire présélectionné
-let histFilter = 'all';
+  /* AUTH */
+  #auth{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  .box{background:var(--panel);border-radius:var(--r);padding:30px;width:100%;max-width:420px;box-shadow:0 20px 60px #0007}
+  .logo{font-weight:800;font-size:24px;letter-spacing:.5px}
+  .logo span{color:var(--acc2)}
+  .tabs{display:flex;background:var(--panel2);border-radius:12px;padding:4px;margin:20px 0 6px}
+  .tabs button{flex:1;padding:10px;border-radius:9px;background:transparent;color:var(--mut);font-weight:600}
+  .tabs button.on{background:var(--acc);color:#fff}
+  .row{display:flex;gap:10px}.row>div{flex:1}
+  .err{color:var(--ko);font-size:13px;margin-top:10px;min-height:16px}
 
-/* ---------- Données ---------- */
-function load() {
-  const d = JSON.parse(localStorage.getItem(DB_KEY) || '{"users":{}}');
-  Object.values(d.users).forEach(u => {           // migration anciennes versions
-    u.contacts = (u.contacts || []).map(c => typeof c === 'string' ? c : c.username).filter(n => n && d.users[n] && n !== u.user);
-    u.notifs = u.notifs || [];
-    u.frozen = !!u.frozen;
-    u.tx = (u.tx || []).map((t, i) => ({ id: t.id || 'T' + t.date + i, ref: t.ref || refCode(), type: t.type || (t.amount >= 0 ? 'in' : 'out'), ...t }));
-  });
-  return d;
-}
-const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
-const euro = n => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-const rnd = n => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
-const refCode = () => 'NB' + Date.now().toString(36).toUpperCase() + rnd(3);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fmtDate = d => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-const fullName = u => u.first + ' ' + u.last;
-const shortName = u => u.first + ' ' + u.last[0].toUpperCase() + '.';
-const ini = u => (u.first[0] + u.last[0]).toUpperCase();
-const cur = () => db.users[me];
-const findUser = q => {
-  q = q.trim().toLowerCase().replace(/^@/, '');
-  const clean = q.replace(/\s/g, '');
-  return Object.values(db.users).find(u => u.user === q || u.card.iban.replace(/\s/g, '').toLowerCase() === clean);
-};
-function hash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; return h.toString(16); }
-
-function genCard(first, last) {
-  const now = new Date();
-  return {
-    number: ('4' + rnd(15)).replace(/(.{4})/g, '$1 ').trim(),
-    exp: String(now.getMonth() + 1).padStart(2, '0') + '/' + String((now.getFullYear() + 4) % 100).padStart(2, '0'),
-    cvv: rnd(3),
-    holder: (first + ' ' + last).toUpperCase(),
-    iban: 'FR76 ' + rnd(4) + ' ' + rnd(4) + ' ' + rnd(4) + ' ' + rnd(4) + ' ' + rnd(4) + ' ' + rnd(3)
-  };
-}
-function addTx(u, o) { u.tx.push({ id: 'T' + Date.now() + rnd(3), ref: o.ref || refCode(), date: Date.now(), ...o }); }
-function notify(u, text) { u.notifs.unshift({ text, date: Date.now(), read: false }); u.notifs = u.notifs.slice(0, 30); }
-
-/* ---------- Auth ---------- */
-$('#tabLogin').onclick = () => switchTab(true);
-$('#tabSignup').onclick = () => switchTab(false);
-function switchTab(l) {
-  $('#tabLogin').classList.toggle('on', l); $('#tabSignup').classList.toggle('on', !l);
-  $('#formLogin').classList.toggle('hidden', !l); $('#formSignup').classList.toggle('hidden', l);
-  authErr('');
-}
-const authErr = m => $('#authErr').textContent = m;
-
-$('#btnSignup').onclick = () => {
-  const first = $('#sFirst').value.trim(), last = $('#sLast').value.trim();
-  const user = $('#sUser').value.trim().toLowerCase(), pass = $('#sPass').value;
-  if (!first || !last) return authErr('Prénom et nom obligatoires.');
-  if (!/^[a-z0-9_.-]{3,20}$/.test(user)) return authErr('Nom d\'utilisateur : 3 à 20 caractères (lettres, chiffres, . _ -).');
-  if (pass.length < 4) return authErr('Mot de passe : 4 caractères minimum.');
-  db = load();
-  if (db.users[user]) return authErr('Ce nom d\'utilisateur existe déjà.');
-  db.users[user] = { first, last, user, pass: hash(pass), card: genCard(first, last), balance: 0, contacts: [], tx: [], notifs: [], frozen: false, created: Date.now() };
-  notify(db.users[user], 'Bienvenue chez NovaBank, ' + first + ' ! Ton compte et ta carte sont prêts.');
-  save(); login(user);
-};
-$('#btnLogin').onclick = () => {
-  const user = $('#lUser').value.trim().toLowerCase(), pass = $('#lPass').value;
-  db = load();
-  const u = db.users[user];
-  if (!u || u.pass !== hash(pass)) return authErr('Identifiants incorrects.');
-  login(user);
-};
-['lUser', 'lPass'].forEach(id => $('#' + id).addEventListener('keydown', e => e.key === 'Enter' && $('#btnLogin').click()));
-function login(user) {
-  me = user; view = 'home'; localStorage.setItem(SES_KEY, me); render();
-  const n = cur().notifs.filter(x => !x.read).length;
-  if (n) toast('Tu as ' + n + ' nouvelle' + (n > 1 ? 's' : '') + ' notification' + (n > 1 ? 's' : ''), 'info');
-}
-$('#btnLogout').onclick = () => { me = null; localStorage.removeItem(SES_KEY); render(); };
-
-/* ---------- Navigation & rendu ---------- */
-const VIEWS = { home: ['Accueil', vHome], cards: ['Ma carte', vCards], transfer: ['Virements', vTransfer], contacts: ['Bénéficiaires', vContacts], history: ['Opérations', vHistory], help: ['Aide & FAQ', vHelp], settings: ['Paramètres', vSettings] };
-$$('.nav').forEach(b => b.onclick = () => go(b.dataset.v));
-function go(v) { view = v; $('#notifPanel').classList.add('hidden'); render(); window.scrollTo(0, 0); }
-
-function render() {
-  const u = cur();
-  $('#auth').classList.toggle('hidden', !!u);
-  $('#app').classList.toggle('hidden', !u);
-  if (!u) { me = null; return; }
-  $$('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === view));
-  $('#title').textContent = VIEWS[view][0];
-  $('#avatar').textContent = ini(u);
-  const n = u.notifs.filter(x => !x.read).length;
-  $('#dot').textContent = n; $('#dot').classList.toggle('hidden', !n);
-  VIEWS[view][1]();
-}
-
-$('#bell').onclick = () => {
-  const p = $('#notifPanel'), u = cur();
-  if (!p.classList.contains('hidden')) { p.classList.add('hidden'); return; }
-  p.innerHTML = '<h3>Notifications</h3>' + (u.notifs.length ? u.notifs.slice(0, 8).map(n => `<div class="nt ${n.read ? '' : 'new'}">${esc(n.text)}<small>${fmtDate(n.date)}</small></div>`).join('') : '<div class="empty">Rien pour le moment.</div>');
-  p.classList.remove('hidden');
-  u.notifs.forEach(n => n.read = true); save();
-  $('#dot').classList.add('hidden');
-};
-
-/* Réception en direct (autre onglet / autre session sur ce navigateur) */
-window.addEventListener('storage', e => {
-  if (e.key !== DB_KEY || !me) return;
-  const before = cur() ? cur().notifs.filter(n => !n.read).length : 0;
-  db = load();
-  if (!cur()) { me = null; render(); return; }
-  const fresh = cur().notifs.filter(n => !n.read);
-  if (fresh.length > before) toast(fresh[0].text, 'info');
-  if (!document.querySelector('#ov') && !document.activeElement.matches('input,select')) render();
-  else { const n = fresh.length; $('#dot').textContent = n; $('#dot').classList.toggle('hidden', !n); }
-});
-
-/* ---------- Modales / toasts ---------- */
-function openModal(html) {
-  $('#modalRoot').innerHTML = `<div id="ov"><div class="modal"><button class="close" id="mClose">✕</button>${html}</div></div>`;
-  $('#mClose').onclick = closeModal;
-  $('#ov').onclick = e => { if (e.target.id === 'ov') closeModal(); };
-}
-const closeModal = () => $('#modalRoot').innerHTML = '';
-function toast(msg, kind) {
-  const t = document.createElement('div');
-  t.className = 'toast' + (kind === true || kind === 'ko' ? ' ko' : kind === 'info' ? ' info' : '');
-  t.textContent = msg; document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3200);
-}
-
-/* ---------- Ajout d'argent (clic sur le logo NovaBank) ---------- */
-$('#logo').onclick = () => {
-  if (!me) return;
-  const methods = [['🏦', 'Virement'], ['💳', 'Carte'], ['💶', 'Espèces'], ['🎁', 'Code cadeau']];
-  openModal(`
-    <h2>Ajouter de l'argent</h2><p>Choisis une méthode de dépôt.</p>
-    <div class="opts">${methods.map((m, i) => `<button class="opt ${i === 0 ? 'on' : ''}" data-m="${m[1]}"><i>${m[0]}</i>${m[1]}</button>`).join('')}</div>
-    <label>Montant (€)</label><input id="amt" type="number" min="1" step="1" value="50">
-    <button class="btn" id="doAdd">Ajouter</button>`);
-  let method = 'Virement';
-  $$('.opt').forEach(b => b.onclick = () => { $$('.opt').forEach(x => x.classList.remove('on')); b.classList.add('on'); method = b.dataset.m; });
-  $('#doAdd').onclick = () => {
-    const a = Math.round(parseFloat($('#amt').value) * 100) / 100, u = cur();
-    if (!(a > 0) || a > 100000) return toast('Montant invalide', true);
-    if (method === 'Carte' && u.frozen) return toast('Ta carte est bloquée', true);
-    u.balance += a;
-    addTx(u, { type: 'in', label: 'Dépôt par ' + method.toLowerCase(), amount: a, cat: 'deposit' });
-    save(); closeModal(); render(); toast('+' + euro(a) + ' ajoutés ✔');
-  };
-};
-
-/* ================= VUES ================= */
-function txRow(t) {
-  return `<div class="tx click" data-id="${t.id}"><div>${esc(t.label)}<small>${fmtDate(t.date)}</small></div><div class="${t.amount >= 0 ? 'plus' : 'minus'}">${t.amount >= 0 ? '+' : ''}${euro(t.amount)}</div></div>`;
-}
-function bindTx() { $$('.tx.click').forEach(el => el.onclick = () => txDetail(el.dataset.id)); }
-function txDetail(id) {
-  const t = cur().tx.find(x => x.id === id); if (!t) return;
-  openModal(`<h2>Détail de l'opération</h2><p>${esc(t.label)}</p>
-    <div class="recap" style="margin-top:14px">
-      <div><span>Montant</span><b class="${t.amount >= 0 ? 'plus' : 'minus'}">${t.amount >= 0 ? '+' : ''}${euro(t.amount)}</b></div>
-      <div><span>Date</span><span>${fmtDate(t.date)}</span></div>
-      <div><span>Type</span><span>${t.type === 'in' ? 'Crédit' : 'Débit'}</span></div>
-      ${t.motif ? `<div><span>Motif</span><span>${esc(t.motif)}</span></div>` : ''}
-      <div><span>Référence</span><span>${esc(t.ref)}</span></div>
-    </div>`);
-}
-const monthStats = u => {
-  const d = new Date(), start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-  const m = u.tx.filter(t => t.date >= start);
-  return { inn: m.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0), out: -m.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0) };
-};
-
-/* --- Accueil --- */
-function vHome() {
-  const u = cur(), s = monthStats(u);
-  $('#view').innerHTML = `
-  <div class="grid">
-    <div class="panel">
-      <h3>Compte courant</h3>
-      <div class="balance">${euro(u.balance)}</div>
-      <div class="iban">${u.card.iban}</div>
-      <div class="stat"><div>Entrées ce mois<b class="plus">+${euro(s.inn)}</b></div><div>Sorties ce mois<b class="minus">-${euro(s.out)}</b></div></div>
-      <div class="actions"><button class="btn ghost" data-go="transfer">🔁 Faire un virement</button><button class="btn ghost" data-go="contacts">👥 Bénéficiaires</button></div>
-    </div>
-    <div class="panel">
-      <h3>Dernières opérations</h3>
-      ${u.tx.length ? u.tx.slice().reverse().slice(0, 5).map(txRow).join('') : '<div class="empty">Aucune opération pour l\'instant.</div>'}
-      <div class="actions"><button class="btn ghost sm" data-go="history">Tout voir</button></div>
-    </div>
-    <div class="panel full">
-      <h3>Virement rapide</h3>
-      ${u.contacts.length ? `<div class="contacts">${u.contacts.map(n => { const c = db.users[n]; return `<div class="ct" data-to="${c.user}"><div class="av">${ini(c)}</div>${esc(shortName(c))}<small>@${esc(c.user)}</small></div>`; }).join('')}</div>` : '<div class="empty">Ajoute un bénéficiaire pour envoyer de l\'argent.</div>'}
-    </div>
-  </div>`;
-  $$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
-  $$('.ct[data-to]').forEach(b => b.onclick = () => { preTo = b.dataset.to; go('transfer'); });
-  bindTx();
-}
-
-/* --- Carte --- */
-function vCards() {
-  const u = cur(), c = u.card;
-  $('#view').innerHTML = `
-  <div class="grid">
-    <div class="panel">
-      <h3>Carte NovaBank <small style="font-weight:400">(clique pour la retourner)</small></h3>
-      <div class="scene"><div class="flip ${u.frozen ? 'frozen' : ''}" id="flip">
-        <div class="face front"><div class="brand">NOVA</div><div class="chip"></div>
-          <div class="num">${masked ? '•••• •••• •••• ' + c.number.slice(-4) : c.number}</div>
-          <div class="meta"><div>Titulaire<b>${esc(c.holder)}</b></div><div>Expire<b>${c.exp}</b></div></div></div>
-        <div class="face bk"><div class="strip"></div>
-          <div class="sig"><div class="sg">${esc(fullName(u))}</div><div class="cvv">${masked ? '•••' : c.cvv}</div></div>
-          <div class="note2">Carte NovaBank — utilisable uniquement sur NovaBank.</div></div>
-      </div></div>
-      <div class="note">${u.frozen ? '🔒 Carte bloquée' : 'Carte active'}</div>
-    </div>
-    <div class="panel">
-      <h3>Gérer ma carte</h3>
-      <div class="set"><div>Masquer les numéros<small>Cache le numéro et le CVV</small></div><div class="sw ${masked ? 'on' : ''}" id="swMask"></div></div>
-      <div class="set"><div>Bloquer la carte<small>Empêche les dépôts par carte</small></div><div class="sw ${u.frozen ? 'on' : ''}" id="swFreeze"></div></div>
-      <div class="set"><div>Plafond de virement<small>Par jour</small></div><b>2 000 €</b></div>
-      <div class="set"><div>IBAN<small>${c.iban}</small></div><button class="btn ghost sm" id="cpIban">Copier</button></div>
-    </div>
-  </div>`;
-  $('#flip').onclick = () => $('#flip').classList.toggle('back');
-  $('#swMask').onclick = () => { masked = !masked; vCards(); };
-  $('#swFreeze').onclick = () => { u.frozen = !u.frozen; save(); vCards(); toast(u.frozen ? 'Carte bloquée 🔒' : 'Carte débloquée ✔'); };
-  $('#cpIban').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(c.iban); toast('IBAN copié'); };
-}
-
-/* --- Virements --- */
-const DAILY_LIMIT = 2000;
-function sentToday(u) {
-  const s = new Date(); s.setHours(0, 0, 0, 0);
-  return -u.tx.filter(t => t.date >= s.getTime() && t.cat === 'transfer' && t.amount < 0).reduce((a, t) => a + t.amount, 0);
-}
-function vTransfer() {
-  const u = cur();
-  if (!u.contacts.length) {
-    $('#view').innerHTML = `<div class="panel"><h3>Nouveau virement</h3><div class="empty">Tu n'as encore aucun bénéficiaire. Ajoute d'abord la personne à qui tu veux envoyer de l'argent.</div><div class="actions"><button class="btn ghost" id="toC">Ajouter un bénéficiaire</button></div></div>`;
-    $('#toC').onclick = () => go('contacts'); return;
+  /* LAYOUT */
+  #app{display:flex;min-height:100vh}
+  aside{width:230px;background:var(--panel);padding:22px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;flex-shrink:0}
+  aside .logo{padding:0 10px 20px;cursor:pointer;user-select:none}
+  .nav{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:transparent;color:var(--mut);font-weight:600;text-align:left;font-size:14px}
+  .nav:hover{background:var(--panel2);color:var(--txt)}
+  .nav.on{background:var(--acc);color:#fff}
+  .nav .ic{width:20px;text-align:center}
+  .spacer{flex:1}
+  .content{flex:1;min-width:0}
+  .top{display:flex;justify-content:space-between;align-items:center;padding:20px 30px}
+  .top h1{font-size:22px}
+  .who{display:flex;align-items:center;gap:14px;color:var(--mut);font-size:14px;position:relative}
+  .bell{background:var(--panel);width:42px;height:42px;border-radius:12px;position:relative;font-size:18px}
+  .bell .dot{position:absolute;top:-5px;right:-5px;background:var(--ko);color:#fff;font-size:11px;border-radius:10px;min-width:19px;height:19px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+  #notifPanel{position:absolute;top:56px;right:0;width:320px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 20px 50px #000a;z-index:5}
+  .nt{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.nt:last-child{border:0}
+  .nt small{color:var(--mut);display:block;margin-top:2px}.nt.new{color:#fff;font-weight:600}
+  #view{padding:0 30px 50px;max-width:1100px}
+  .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+  .full{grid-column:1/-1}
+  @media(max-width:900px){
+    #app{flex-direction:column}
+    aside{width:100%;height:auto;position:fixed;bottom:0;left:0;top:auto;flex-direction:row;padding:6px;z-index:8;overflow-x:auto;border-top:1px solid var(--line)}
+    aside .logo,.spacer,.nav span.t{display:none}
+    .nav{flex:1;justify-content:center;padding:12px 8px}
+    #view{padding:0 14px 90px}.top{padding:16px 14px}.grid{grid-template-columns:1fr}
+    #notifPanel{width:280px}
   }
-  $('#view').innerHTML = `
-  <div class="grid"><div class="panel">
-    <h3>Nouveau virement</h3>
-    <label>Compte à débiter</label><input value="Compte courant — ${euro(u.balance)}" disabled>
-    <label>Bénéficiaire</label>
-    <select id="to">${u.contacts.map(n => `<option value="${n}" ${n === preTo ? 'selected' : ''}>${esc(fullName(db.users[n]))} (@${n})</option>`).join('')}</select>
-    <label>Montant (€)</label><input id="sa" type="number" min="0.01" step="0.01" placeholder="0,00">
-    <label>Motif (optionnel)</label><input id="sm" maxlength="40" placeholder="Ex : remboursement">
-    <button class="btn" id="goRecap">Continuer</button>
-  </div>
-  <div class="panel"><h3>Infos</h3>
-    <div class="set"><div>Délai<small>Immédiat entre comptes NovaBank</small></div><b>Instantané</b></div>
-    <div class="set"><div>Frais</div><b>0 €</b></div>
-    <div class="set"><div>Plafond restant aujourd'hui</div><b>${euro(Math.max(0, DAILY_LIMIT - sentToday(u)))}</b></div>
-  </div></div>`;
-  $('#goRecap').onclick = () => {
-    const to = $('#to').value, a = Math.round(parseFloat($('#sa').value) * 100) / 100, m = $('#sm').value.trim();
-    if (!(a > 0)) return toast('Montant invalide', true);
-    if (a > u.balance) return toast('Solde insuffisant', true);
-    if (sentToday(u) + a > DAILY_LIMIT) return toast('Plafond journalier dépassé (2 000 €)', true);
-    const r = db.users[to];
-    openModal(`<h2>Confirmer le virement</h2><p>Vérifie les informations puis valide avec ton mot de passe.</p>
-      <div class="recap" style="margin-top:12px">
-        <div><span>Bénéficiaire</span><b>${esc(fullName(r))}</b></div>
-        <div><span>IBAN</span><span>${r.card.iban.slice(0, 9)} •••• ${r.card.iban.slice(-4)}</span></div>
-        <div><span>Montant</span><b>${euro(a)}</b></div>
-        ${m ? `<div><span>Motif</span><span>${esc(m)}</span></div>` : ''}
+  .panel{background:var(--panel);border-radius:var(--r);padding:24px}
+  .panel+.panel{margin-top:0}
+  h3{font-size:15px;color:var(--mut);font-weight:600;margin-bottom:14px}
+  .balance{font-size:44px;font-weight:800;margin:4px 0 2px}
+  .iban{color:var(--mut);font-size:13px;margin-bottom:6px}
+  .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .stat{display:flex;gap:12px;margin-top:18px}
+  .stat div{flex:1;background:var(--panel2);border-radius:12px;padding:12px;font-size:12px;color:var(--mut)}
+  .stat b{display:block;font-size:17px;color:var(--txt);margin-top:3px}
+
+  /* CARTE */
+  .scene{perspective:1000px;width:100%;max-width:380px;height:230px;margin:18px auto 8px}
+  .flip{position:relative;width:100%;height:100%;transition:transform .7s;transform-style:preserve-3d;cursor:pointer}
+  .flip.back{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;padding:22px;box-shadow:0 18px 40px #0008;overflow:hidden}
+  .front{background:linear-gradient(135deg,#6c5ce7,#00cec9 120%)}
+  .front::after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;background:#fff1;right:-100px;top:-120px}
+  .frozen .front{filter:grayscale(1) brightness(.7)}
+  .bk{transform:rotateY(180deg);background:linear-gradient(135deg,#2d3436,#1b1f3a);padding:0}
+  .strip{height:42px;background:#000;margin-top:26px}
+  .sig{margin:20px 22px 0;display:flex;gap:8px;align-items:center}
+  .sig .sg{flex:1;height:36px;background:repeating-linear-gradient(45deg,#fff,#fff 6px,#e8e8e8 6px,#e8e8e8 12px);border-radius:4px;color:#222;font-style:italic;padding:8px;font-size:13px}
+  .sig .cvv{background:#fff;color:#111;padding:8px 12px;border-radius:4px;font-weight:700;letter-spacing:2px}
+  .chip{width:44px;height:32px;border-radius:7px;background:linear-gradient(135deg,#f6d365,#fda085);margin-top:26px}
+  .num{font-size:21px;letter-spacing:2.5px;margin-top:20px;font-weight:600;text-shadow:0 1px 2px #0004}
+  .meta{display:flex;justify-content:space-between;margin-top:16px;font-size:12px;text-transform:uppercase}
+  .meta b{display:block;font-size:14px;letter-spacing:1px}
+  .brand{position:absolute;right:22px;top:20px;font-weight:800;font-style:italic;font-size:20px}
+  .note{font-size:12px;color:var(--mut);text-align:center;margin-top:6px}
+  .bk .note2{position:absolute;bottom:14px;left:22px;right:22px;font-size:10px;color:#9aa0c8}
+  .set{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .set small{color:var(--mut);display:block;margin-top:2px}
+  .sw{width:46px;height:26px;border-radius:13px;background:#343b6b;position:relative;transition:.2s;flex-shrink:0}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+  .sw.on{background:var(--acc2)}.sw.on::after{left:23px}
+
+  /* CONTACTS */
+  .contacts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .ct{background:var(--panel2);border-radius:14px;padding:18px 10px;text-align:center;cursor:pointer;transition:.15s;border:1px solid transparent;position:relative}
+  .ct:hover{border-color:var(--acc);transform:translateY(-2px)}
+  .av{width:48px;height:48px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:700;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+  .ct small{color:var(--mut);display:block;font-size:11px;margin-top:2px}
+  .ct .rm{position:absolute;top:6px;right:8px;background:none;color:var(--mut);font-size:14px}
+  .ct .rm:hover{color:var(--ko)}
+  .ct.add{border:2px dashed #343b6b;background:transparent;color:var(--mut);display:flex;flex-direction:column;justify-content:center;font-size:26px}
+  .ct.add small{font-size:12px}
+
+  /* HISTORIQUE */
+  .tx{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px;gap:10px}
+  .tx small{color:var(--mut);display:block;margin-top:2px}
+  .tx.click{cursor:pointer}.tx.click:hover{background:#ffffff08}
+  .plus{color:var(--ok);font-weight:700;white-space:nowrap}.minus{color:var(--ko);font-weight:700;white-space:nowrap}
+  .empty{color:var(--mut);font-size:14px;padding:10px 0}
+  .found{background:var(--panel2);border-radius:12px;padding:14px;margin-top:12px;display:flex;align-items:center;gap:12px}
+  .found .av{margin:0}
+  .recap div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .recap span:first-child{color:var(--mut)}
+  .okcircle{width:70px;height:70px;border-radius:50%;background:#1d4f33;color:var(--ok);font-size:34px;display:flex;align-items:center;justify-content:center;margin:6px auto 14px}
+
+  /* FAQ */
+  .faq{border-bottom:1px solid var(--line)}
+  .faq button{width:100%;background:none;text-align:left;padding:16px 0;font-weight:600;display:flex;justify-content:space-between;font-size:15px}
+  .faq div{color:var(--mut);font-size:14px;line-height:1.55;padding:0 0 16px;display:none}
+  .faq.open div{display:block}
+  .faq.open .pl{transform:rotate(45deg)}.pl{transition:.2s}
+
+  /* MODAL */
+  #ov{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;padding:20px;z-index:10;animation:fade .2s}
+  .modal{background:var(--panel);border-radius:var(--r);padding:26px;width:100%;max-width:430px;animation:pop .25s;max-height:90vh;overflow:auto}
+  .modal h2{margin-bottom:6px}
+  .modal p{color:var(--mut);font-size:14px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .opt{background:var(--panel2);padding:16px 10px;border-radius:14px;text-align:center;border:2px solid transparent;font-size:14px;font-weight:600}
+  .opt i{display:block;font-style:normal;font-size:24px;margin-bottom:6px}
+  .opt.on{border-color:var(--acc2)}
+  .close{float:right;background:none;font-size:22px;color:var(--mut)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ok);color:#06210f;padding:12px 20px;border-radius:12px;font-weight:600;z-index:20;animation:pop .25s;max-width:90%}
+  .toast.ko{background:var(--ko);color:#2b0505}.toast.info{background:var(--acc);color:#fff}
+  @keyframes fade{from{opacity:0}}@keyframes pop{from{opacity:0;transform:scale(.94)}}
+</style>
+</head>
+<body>
+
+<!-- CONNEXION / INSCRIPTION -->
+<section id="auth">
+  <div class="box">
+    <div class="logo">Nova<span>Bank</span></div>
+    <div class="tabs">
+      <button id="tabLogin" class="on">Connexion</button>
+      <button id="tabSignup">Ouvrir un compte</button>
+    </div>
+    <div id="formLogin">
+      <label>Nom d'utilisateur</label><input id="lUser" autocomplete="username">
+      <label>Mot de passe</label><input id="lPass" type="password" autocomplete="current-password">
+      <button class="btn" id="btnLogin">Se connecter</button>
+    </div>
+    <div id="formSignup" class="hidden">
+      <div class="row">
+        <div><label>Prénom</label><input id="sFirst"></div>
+        <div><label>Nom</label><input id="sLast"></div>
       </div>
-      <label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password">
-      <button class="btn" id="confirmTr">Valider le virement</button>`);
-    $('#pw').focus();
-    $('#pw').addEventListener('keydown', e => e.key === 'Enter' && $('#confirmTr').click());
-    $('#confirmTr').onclick = () => {
-      if (hash($('#pw').value) !== u.pass) return toast('Mot de passe incorrect', true);
-      db = load();
-      const me2 = cur(), rec = db.users[to];
-      if (!rec) return toast('Bénéficiaire introuvable', true);
-      if (a > me2.balance) return toast('Solde insuffisant', true);
-      const ref = refCode();
-      me2.balance = Math.round((me2.balance - a) * 100) / 100;
-      rec.balance = Math.round((rec.balance + a) * 100) / 100;
-      addTx(me2, { type: 'out', cat: 'transfer', label: 'Virement à ' + fullName(rec), amount: -a, motif: m, ref });
-      addTx(rec, { type: 'in', cat: 'transfer', label: 'Virement de ' + fullName(me2), amount: a, motif: m, ref });
-      notify(rec, fullName(me2) + ' t\'a envoyé ' + euro(a) + (m ? ' — « ' + m + ' »' : ''));
-      save(); preTo = '';
-      openModal(`<div class="okcircle">✓</div><h2 style="text-align:center">Virement effectué</h2>
-        <p style="text-align:center">${euro(a)} envoyés à ${esc(fullName(rec))}</p>
-        <div class="recap" style="margin-top:14px"><div><span>Référence</span><span>${ref}</span></div><div><span>Nouveau solde</span><b>${euro(me2.balance)}</b></div></div>
-        <button class="btn" id="okDone">Terminé</button>`);
-      $('#okDone').onclick = () => { closeModal(); go('home'); };
-    };
-  };
-}
+      <label>Nom d'utilisateur</label><input id="sUser" autocomplete="username">
+      <label>Mot de passe</label><input id="sPass" type="password" autocomplete="new-password">
+      <button class="btn" id="btnSignup">Ouvrir mon compte</button>
+    </div>
+    <div class="err" id="authErr"></div>
+  </div>
+</section>
 
-/* --- Bénéficiaires --- */
-function vContacts() {
-  const u = cur();
-  $('#view').innerHTML = `<div class="panel"><h3>Mes bénéficiaires</h3>
-    <div class="contacts">
-      ${u.contacts.map(n => { const c = db.users[n]; return `<div class="ct" data-to="${c.user}"><button class="rm" data-rm="${c.user}" title="Supprimer">✕</button><div class="av">${ini(c)}</div>${esc(fullName(c))}<small>@${esc(c.user)}</small></div>`; }).join('')}
-      <div class="ct add" id="addCt">＋<small>Ajouter</small></div>
-    </div></div>`;
-  $$('.ct[data-to]').forEach(b => b.onclick = e => { if (e.target.dataset.rm) return; preTo = b.dataset.to; go('transfer'); });
-  $$('[data-rm]').forEach(b => b.onclick = () => {
-    const c = db.users[b.dataset.rm];
-    if (confirm('Supprimer ' + fullName(c) + ' de tes bénéficiaires ?')) { u.contacts = u.contacts.filter(x => x !== c.user); save(); vContacts(); }
-  });
-  $('#addCt').onclick = openAddContact;
-}
-function openAddContact() {
-  openModal(`<h2>Nouveau bénéficiaire</h2><p>Saisis son nom d'utilisateur NovaBank ou son IBAN. Il doit avoir un compte.</p>
-    <label>Nom d'utilisateur ou IBAN</label><input id="cq" placeholder="@pseudo ou FR76 …">
-    <div id="found"></div>
-    <button class="btn" id="searchCt">Rechercher</button>`);
-  $('#cq').focus();
-  $('#cq').addEventListener('keydown', e => e.key === 'Enter' && $('#searchCt').click());
-  $('#searchCt').onclick = () => {
-    db = load();
-    const r = findUser($('#cq').value), u = cur();
-    if (!$('#cq').value.trim()) return;
-    if (!r) { $('#found').innerHTML = ''; return toast('Aucun compte trouvé', true); }
-    if (r.user === u.user) return toast('C\'est ton propre compte', true);
-    if (u.contacts.includes(r.user)) return toast('Déjà dans tes bénéficiaires', true);
-    $('#found').innerHTML = `<div class="found"><div class="av">${ini(r)}</div><div><b>${esc(fullName(r))}</b><br><small style="color:var(--mut)">@${esc(r.user)}</small></div></div>`;
-    const b = $('#searchCt'); b.textContent = 'Ajouter ce bénéficiaire';
-    b.onclick = () => { u.contacts.push(r.user); save(); closeModal(); render(); toast(fullName(r) + ' ajouté ✔'); };
-  };
-}
+<!-- APPLI -->
+<section id="app" class="hidden">
+  <aside>
+    <div class="logo" id="logo">Nova<span>Bank</span></div>
+    <button class="nav" data-v="home"><span class="ic">🏠</span><span class="t">Accueil</span></button>
+    <button class="nav" data-v="cards"><span class="ic">💳</span><span class="t">Ma carte</span></button>
+    <button class="nav" data-v="transfer"><span class="ic">🔁</span><span class="t">Virements</span></button>
+    <button class="nav" data-v="contacts"><span class="ic">👥</span><span class="t">Bénéficiaires</span></button>
+    <button class="nav" data-v="history"><span class="ic">📄</span><span class="t">Opérations</span></button>
+    <button class="nav" data-v="help"><span class="ic">❓</span><span class="t">Aide &amp; FAQ</span></button>
+    <div class="spacer"></div>
+    <button class="nav" data-v="settings"><span class="ic">⚙️</span><span class="t">Paramètres</span></button>
+  </aside>
+  <div class="content">
+    <div class="top">
+      <h1 id="title"></h1>
+      <div class="who">
+        <button class="bell" id="bell">🔔<span class="dot hidden" id="dot">0</span></button>
+        <div id="notifPanel" class="hidden"></div>
+        <div class="avatar" id="avatar"></div>
+        <button class="btn ghost" id="btnLogout">Déconnexion</button>
+      </div>
+    </div>
+    <div id="view"></div>
+  </div>
+</section>
 
-/* --- Opérations --- */
-function vHistory() {
-  const u = cur();
-  let list = u.tx.slice().reverse();
-  if (histFilter === 'in') list = list.filter(t => t.amount > 0);
-  if (histFilter === 'out') list = list.filter(t => t.amount < 0);
-  $('#view').innerHTML = `<div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">Toutes les opérations</h3>
-    <select id="flt" style="width:auto"><option value="all">Tout</option><option value="in">Reçus</option><option value="out">Envoyés</option></select></div>
-    ${list.length ? list.map(txRow).join('') : '<div class="empty">Aucune opération.</div>'}</div>`;
-  $('#flt').value = histFilter;
-  $('#flt').onchange = e => { histFilter = e.target.value; vHistory(); };
-  bindTx();
-}
-
-/* --- Aide & FAQ --- */
-const FAQ = [
-  ['Comment envoyer de l\'argent à quelqu\'un ?', 'Va dans « Bénéficiaires », ajoute la personne avec son nom d\'utilisateur ou son IBAN, puis ouvre « Virements », choisis-la et valide avec ton mot de passe. Elle reçoit l\'argent immédiatement.'],
-  ['Puis-je envoyer de l\'argent à quelqu\'un qui n\'a pas de compte ?', 'Non. Un bénéficiaire doit avoir ouvert un compte NovaBank. Demande-lui de s\'inscrire, puis ajoute-le avec son nom d\'utilisateur.'],
-  ['Comment ajouter de l\'argent sur mon compte ?', 'Tu peux déposer de l\'argent par virement, carte, espèces ou code cadeau. Cherche bien dans l\'interface : l\'accès au dépôt n\'est pas affiché de façon évidente.'],
-  ['Où puis-je utiliser ma carte ?', 'Ta carte NovaBank fonctionne uniquement sur NovaBank, pour gérer ton compte. Elle ne peut pas être utilisée ailleurs.'],
-  ['Quel est le plafond de virement ?', 'Le plafond est de 2 000 € par jour. Il se remet à zéro chaque jour à minuit.'],
-  ['J\'ai oublié mon mot de passe', 'Pour le moment, tu peux le changer dans « Paramètres » une fois connecté. Si tu l\'as perdu, il faut ouvrir un nouveau compte.'],
-  ['Mes virements ont-ils des frais ?', 'Non, les virements entre comptes NovaBank sont gratuits et instantanés.']
-];
-function vHelp() {
-  $('#view').innerHTML = `<div class="grid"><div class="panel"><h3>Questions fréquentes</h3>
-    ${FAQ.map(f => `<div class="faq"><button><span>${f[0]}</span><span class="pl">＋</span></button><div>${f[1]}</div></div>`).join('')}</div>
-    <div class="panel"><h3>Nous contacter</h3>
-      <label>Sujet</label><select id="hs"><option>Question sur mon compte</option><option>Un virement</option><option>Ma carte</option><option>Autre</option></select>
-      <label>Message</label><textarea id="hm" rows="5" style="width:100%;padding:12px;border-radius:12px;border:1px solid #2c3258;background:var(--panel2);color:var(--txt);font-size:15px;resize:vertical"></textarea>
-      <button class="btn" id="hsend">Envoyer</button>
-      <div class="set" style="margin-top:16px"><div>Support<small>support@novabank.fr</small></div><span>Lun–Ven 9h–18h</span></div>
-    </div></div>`;
-  $$('.faq button').forEach(b => b.onclick = () => b.parentElement.classList.toggle('open'));
-  $('#hsend').onclick = () => { if (!$('#hm').value.trim()) return toast('Écris un message', true); $('#hm').value = ''; toast('Message envoyé. Nous te répondons sous 48h ✔'); };
-}
-
-/* --- Paramètres --- */
-function vSettings() {
-  const u = cur();
-  $('#view').innerHTML = `<div class="grid"><div class="panel"><h3>Mon profil</h3>
-      <div class="set"><div>Nom<small>${esc(fullName(u))}</small></div></div>
-      <div class="set"><div>Nom d'utilisateur<small>@${esc(u.user)}</small></div></div>
-      <div class="set"><div>IBAN<small>${u.card.iban}</small></div></div>
-      <div class="set"><div>Client depuis<small>${new Date(u.created || Date.now()).toLocaleDateString('fr-FR')}</small></div></div></div>
-    <div class="panel"><h3>Sécurité</h3>
-      <label>Mot de passe actuel</label><input id="p0" type="password">
-      <label>Nouveau mot de passe</label><input id="p1" type="password">
-      <button class="btn" id="chPw">Modifier le mot de passe</button></div></div>`;
-  $('#chPw').onclick = () => {
-    if (hash($('#p0').value) !== u.pass) return toast('Mot de passe actuel incorrect', true);
-    if ($('#p1').value.length < 4) return toast('4 caractères minimum', true);
-    u.pass = hash($('#p1').value); save(); $('#p0').value = $('#p1').value = ''; toast('Mot de passe modifié ✔');
-  };
-}
-
-render();
+<div id="modalRoot"></div>
+<script src="app.js"></script>
+</body>
+</html>
