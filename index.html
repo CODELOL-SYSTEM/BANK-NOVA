@@ -136,22 +136,42 @@ h3{font-size:15px;color:var(--mut);font-weight:600;margin-bottom:14px}
 .ff,.fb{position:absolute;inset:0;border-radius:20px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:22px;display:flex;flex-direction:column;justify-content:center;gap:12px;box-shadow:0 30px 40px -15px #000b,inset 0 1px 0 #fff5}
 .ff{background:linear-gradient(145deg,hsl(calc(var(--i)*30),70%,52%),hsl(calc(var(--i)*30 + 40),70%,30%));color:#fff;font-weight:700;font-size:18px}.ff b{font-size:54px;opacity:.35;line-height:1}
 .fb{transform:rotateY(180deg);background:var(--panel2);font-size:15px;line-height:1.5;border:1px solid var(--line)}
+textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--panel2);color:var(--txt);font:inherit;resize:none;outline:none}
+label.up{display:block;border:2px dashed #4a5290;border-radius:14px;padding:22px;text-align:center;cursor:pointer;margin:0;color:var(--txt);font-size:14px}label.up:hover{border-color:var(--acc2)}
+.upv{display:none;width:100%;max-height:150px;object-fit:cover;border-radius:12px;margin-top:10px}
+.foot{margin-top:28px;text-align:center;font-size:12px;color:var(--mut);padding:14px;border-top:1px solid var(--line)}.foot2{margin-top:16px;font-size:12px;color:var(--mut)}.foot2 span{cursor:default}
+.cube{--s:64px;width:var(--s);height:var(--s);position:relative;transform-style:preserve-3d;animation:cr 9s linear infinite}
+.cube i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:calc(var(--s)*.55);font-style:normal;background:var(--panel2) center/cover;border:1px solid #ffffff33;box-shadow:inset 0 0 18px #0006}
+.cube i:nth-child(1){transform:translateZ(calc(var(--s)/2))}.cube i:nth-child(2){transform:rotateY(90deg) translateZ(calc(var(--s)/2))}.cube i:nth-child(3){transform:rotateY(180deg) translateZ(calc(var(--s)/2))}.cube i:nth-child(4){transform:rotateY(-90deg) translateZ(calc(var(--s)/2))}.cube i:nth-child(5){transform:rotateX(90deg) translateZ(calc(var(--s)/2))}.cube i:nth-child(6){transform:rotateX(-90deg) translateZ(calc(var(--s)/2))}
+@keyframes cr{from{transform:rotateX(-20deg) rotateY(0)}to{transform:rotateX(-20deg) rotateY(360deg)}}
+.it .pi{perspective:500px}.it:hover .pi{transform:none}.pi.big{height:220px;perspective:700px;margin-bottom:10px}
+.btn{background:var(--acc);box-shadow:0 2px 0 #0003}.btn:active{transform:translateY(1px);box-shadow:none}
+.balance{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:var(--txt);filter:none}
+.nav.on{box-shadow:none}.logo span{color:var(--acc)}#bg3d{opacity:.4}
+.top{background:color-mix(in srgb,var(--panel) 85%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:6}
+.hello{padding:4px 0 18px}.hello h2{font-size:24px}
+.acc{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--panel2);margin-bottom:10px;cursor:pointer;transition:.15s;border:1px solid transparent}.acc:hover{border-color:var(--acc)}.ai{font-size:26px}.ad{flex:1;min-width:0}.ab{font-weight:800;font-size:18px}
+.qa{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.bar{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:13px}.bar span{width:58px;color:var(--mut)}.bar div{flex:1;height:10px;border-radius:6px;background:var(--panel2);overflow:hidden}.bar i{display:block;height:100%;border-radius:6px}
+.crow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}.crow:hover{background:#ffffff08}.ci{flex:1;min-width:0}
+.avatar,.av{overflow:hidden}.avatar img,.av img{width:100%;height:100%;object-fit:cover;display:block}
+.pf{display:block;text-align:center;cursor:pointer;margin:0;font-size:13px;color:var(--mut)}.av.big{width:88px;height:88px;font-size:34px;margin-bottom:6px}
 </style></head><body>
-<section id="auth"><div class="ahero"><div id="c3a" class="c3d tall"></div><div class="note">Glisse la carte · ta future NovaBank</div></div><div class="box"><div class="logo"><i class="coin3"></i>Nova<span>Bank</span></div>
-<div class="tabs"><button id="tL" class="on">Connexion</button><button id="tS">Ouvrir un compte</button></div>
-<div id="fL"><label>Nom d'utilisateur</label><input id="lU"><label>Mot de passe</label><input id="lP" type="password"><button class="btn" id="bL">Se connecter</button></div>
-<div id="fS" class="hidden"><div class="row"><div><label>Prénom</label><input id="sF"></div><div><label>Nom</label><input id="sN"></div></div><label>Nom d'utilisateur</label><input id="sU"><label>Mot de passe</label><input id="sP" type="password"><button class="btn" id="bS">Ouvrir mon compte</button></div>
-<div class="err" id="ae"></div></div></section>
+<section id="auth"><div class="ahero"><div id="c3a" class="c3d tall"></div><div class="note">Votre carte NovaBank · Espace client sécurisé</div></div><div class="box"><div class="logo"><i class="coin3"></i>Nova<span>Bank</span></div>
+<div class="note" style="margin-top:6px">Espace client · 🔒 Connexion sécurisée</div><div class="tabs"><button id="tL" class="on">Connexion</button><button id="tS">Devenir client</button></div>
+<div id="fL"><label>Identifiant client</label><input id="lU"><label>Mot de passe</label><input id="lP" type="password"><button class="btn" id="bL">Accéder à mes comptes</button></div>
+<div id="fS" class="hidden"><div class="row"><div><label>Prénom</label><input id="sF"></div><div><label>Nom</label><input id="sN"></div></div><label>Identifiant client</label><input id="sU"><label>Mot de passe</label><input id="sP" type="password"><button class="btn" id="bS">Ouvrir mon compte</button></div>
+<div class="note" style="margin-top:14px">⚠️ NovaBank ne vous demandera jamais votre mot de passe par téléphone ou e-mail. (Banque fictive pour jouer)</div><div class="err" id="ae"></div></div></section>
 <section id="app" class="hidden"><aside><div class="logo"><i class="coin3"></i>Nova<span>Bank</span></div>
-<button class="nav" data-act="go" data-v="home">🏠<span class="t">Accueil</span></button>
+<button class="nav" data-act="go" data-v="home">🏠<span class="t">Mes comptes</span></button>
 <button class="nav" data-act="go" data-v="cards">💳<span class="t">Ma carte</span></button>
 <button class="nav" data-act="go" data-v="transfer">🔁<span class="t">Virement</span></button>
-<button class="nav" data-act="go" data-v="contacts">👥<span class="t">Bénéficiaires</span></button>
+<button class="nav" data-act="go" data-v="contacts">👥<span class="t">Contacts</span></button>
 <button class="nav" data-act="go" data-v="shop">🛍️<span class="t">Mon shop</span></button>
 <button class="nav" data-act="go" data-v="history">📄<span class="t">Opérations</span></button>
 <button class="nav" data-act="go" data-v="help">❓<span class="t">Aide</span></button>
 <div class="spacer"></div><button class="nav" data-act="go" data-v="settings">⚙️<span class="t">Paramètres</span></button></aside>
-<div class="content"><div class="top"><h1 id="title"></h1><div class="who"><button class="bell" data-act="bell">🔔<span class="dot hidden" id="dot"></span></button><div id="np" class="hidden"></div><div class="avatar" id="av"></div><button class="btn ghost" data-act="out">Déconnexion</button></div></div><div id="view"></div></div></section>
+<div class="content"><div class="top"><h1 id="title"></h1><div class="who"><button class="bell" data-act="bell">🔔<span class="dot hidden" id="dot"></span></button><div id="np" class="hidden"></div><div class="avatar" id="av" data-act="me" style="cursor:pointer" title="Mon profil"></div><button class="btn ghost" data-act="out">Déconnexion</button></div></div><div id="view"></div></div></section>
 <div id="mr"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="app.js"></script></body></html>
