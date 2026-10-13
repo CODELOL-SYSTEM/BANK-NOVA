@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaBank</title>
+<style>
+  :root{--bg:#0f1220;--panel:#171b2e;--panel2:#1f2440;--txt:#eef0ff;--mut:#8b91b8;--acc:#6c5ce7;--acc2:#00cec9;--ok:#2ecc71;--ko:#ff6b6b;--r:18px}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+  body{background:radial-gradient(1200px 600px at 10% -10%,#262b55 0,transparent 60%),var(--bg);color:var(--txt);min-height:100vh}
+  button{cursor:pointer;border:0;color:inherit}
+  input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #2c3258;background:var(--panel2);color:var(--txt);font-size:15px;outline:none}
+  input:focus,select:focus{border-color:var(--acc)}
+  label{font-size:12px;color:var(--mut);display:block;margin:12px 0 6px}
+  .btn{background:linear-gradient(135deg,var(--acc),#8e7dff);padding:12px 18px;border-radius:12px;font-weight:600;font-size:15px;width:100%;margin-top:16px;transition:.15s}
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.1)}
+  .btn.ghost{background:var(--panel2);width:auto;margin:0}
+  .hidden{display:none!important}
+  .demo{background:#2a2147;color:#c9bfff;text-align:center;font-size:12px;padding:6px}
+
+  /* AUTH */
+  #auth{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 30px);padding:20px}
+  .box{background:var(--panel);border-radius:var(--r);padding:30px;width:100%;max-width:420px;box-shadow:0 20px 60px #0007}
+  .logo{font-weight:800;font-size:24px;letter-spacing:.5px}
+  .logo span{color:var(--acc2)}
+  .tabs{display:flex;background:var(--panel2);border-radius:12px;padding:4px;margin:20px 0 6px}
+  .tabs button{flex:1;padding:10px;border-radius:9px;background:transparent;color:var(--mut);font-weight:600}
+  .tabs button.on{background:var(--acc);color:#fff}
+  .row{display:flex;gap:10px}.row>div{flex:1}
+  .err{color:var(--ko);font-size:13px;margin-top:10px;min-height:16px}
+
+  /* APP */
+  header{display:flex;justify-content:space-between;align-items:center;padding:18px 28px}
+  #logo{cursor:pointer;user-select:none}
+  .who{display:flex;align-items:center;gap:12px;color:var(--mut);font-size:14px}
+  main{max-width:1050px;margin:0 auto;padding:0 20px 50px;display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+  @media(max-width:850px){main{grid-template-columns:1fr}}
+  .card-panel,.panel{background:var(--panel);border-radius:var(--r);padding:24px}
+  h3{font-size:15px;color:var(--mut);font-weight:600;margin-bottom:14px}
+  .balance{font-size:44px;font-weight:800;margin:4px 0 2px}
+  .iban{color:var(--mut);font-size:13px;margin-bottom:6px}
+  .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .full{grid-column:1/-1}
+
+  /* CARTE */
+  .scene{perspective:1000px;width:100%;max-width:380px;height:230px;margin:18px auto 8px}
+  .flip{position:relative;width:100%;height:100%;transition:transform .7s;transform-style:preserve-3d;cursor:pointer}
+  .flip.back{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;padding:22px;box-shadow:0 18px 40px #0008;overflow:hidden}
+  .front{background:linear-gradient(135deg,#6c5ce7,#00cec9 120%)}
+  .front::after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;background:#fff1;right:-100px;top:-120px}
+  .bk{transform:rotateY(180deg);background:linear-gradient(135deg,#2d3436,#1b1f3a);padding:0}
+  .strip{height:42px;background:#000;margin-top:26px}
+  .sig{margin:20px 22px 0;display:flex;gap:8px;align-items:center}
+  .sig .sg{flex:1;height:36px;background:repeating-linear-gradient(45deg,#fff,#fff 6px,#e8e8e8 6px,#e8e8e8 12px);border-radius:4px;color:#222;font-style:italic;padding:8px;font-size:13px}
+  .sig .cvv{background:#fff;color:#111;padding:8px 12px;border-radius:4px;font-weight:700;letter-spacing:2px}
+  .chip{width:44px;height:32px;border-radius:7px;background:linear-gradient(135deg,#f6d365,#fda085);margin-top:26px}
+  .num{font-size:21px;letter-spacing:2.5px;margin-top:20px;font-weight:600;text-shadow:0 1px 2px #0004}
+  .meta{display:flex;justify-content:space-between;margin-top:16px;font-size:12px;text-transform:uppercase}
+  .meta b{display:block;font-size:14px;letter-spacing:1px}
+  .brand{position:absolute;right:22px;top:20px;font-weight:800;font-style:italic;font-size:20px}
+  .note{font-size:12px;color:var(--mut);text-align:center;margin-top:6px}
+  .bk .note2{position:absolute;bottom:14px;left:22px;right:22px;font-size:10px;color:#9aa0c8}
+
+  /* CONTACTS */
+  .contacts{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+  .ct{background:var(--panel2);border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;transition:.15s;border:1px solid transparent}
+  .ct:hover{border-color:var(--acc);transform:translateY(-2px)}
+  .av{width:48px;height:48px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:700;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+  .ct small{color:var(--mut);display:block;font-size:11px;margin-top:2px}
+  .ct.add{border:2px dashed #343b6b;background:transparent;color:var(--mut);display:flex;flex-direction:column;justify-content:center;font-size:26px}
+  .ct.add small{font-size:12px}
+
+  /* HISTORIQUE */
+  .tx{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #262c50;font-size:14px}
+  .tx small{color:var(--mut);display:block}
+  .plus{color:var(--ok);font-weight:700}.minus{color:var(--ko);font-weight:700}
+  .empty{color:var(--mut);font-size:14px;padding:10px 0}
+
+  /* MODAL */
+  #ov{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;padding:20px;z-index:10;animation:fade .2s}
+  .modal{background:var(--panel);border-radius:var(--r);padding:26px;width:100%;max-width:420px;animation:pop .25s}
+  .modal h2{margin-bottom:6px}
+  .modal p{color:var(--mut);font-size:14px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .opt{background:var(--panel2);padding:16px 10px;border-radius:14px;text-align:center;border:2px solid transparent;font-size:14px;font-weight:600}
+  .opt i{display:block;font-style:normal;font-size:24px;margin-bottom:6px}
+  .opt.on{border-color:var(--acc2)}
+  .close{float:right;background:none;font-size:22px;color:var(--mut)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ok);color:#06210f;padding:12px 20px;border-radius:12px;font-weight:600;z-index:20;animation:pop .25s}
+  .toast.ko{background:var(--ko);color:#2b0505}
+  @keyframes fade{from{opacity:0}}@keyframes pop{from{opacity:0;transform:scale(.94)}}
+</style>
+</head>
+<body>
+
+<!-- CONNEXION / INSCRIPTION -->
+<section id="auth">
+  <div class="box">
+    <div class="logo">Nova<span>Bank</span></div>
+    <div class="tabs">
+      <button id="tabLogin" class="on">Connexion</button>
+      <button id="tabSignup">Inscription</button>
+    </div>
+
+    <div id="formLogin">
+      <label>Nom d'utilisateur</label><input id="lUser" autocomplete="username">
+      <label>Mot de passe</label><input id="lPass" type="password" autocomplete="current-password">
+      <button class="btn" id="btnLogin">Se connecter</button>
+    </div>
+
+    <div id="formSignup" class="hidden">
+      <div class="row">
+        <div><label>Prénom</label><input id="sFirst"></div>
+        <div><label>Nom</label><input id="sLast"></div>
+      </div>
+      <label>Nom d'utilisateur</label><input id="sUser" autocomplete="username">
+      <label>Mot de passe</label><input id="sPass" type="password" autocomplete="new-password">
+      <button class="btn" id="btnSignup">Créer mon compte + ma carte</button>
+    </div>
+    <div class="err" id="authErr"></div>
+  </div>
+</section>
+
+<!-- APPLI -->
+<section id="app" class="hidden">
+  <header>
+    <div class="logo" id="logo">Nova<span>Bank</span></div>
+    <div class="who"><span id="whoName"></span><button class="btn ghost" id="btnLogout">Déconnexion</button></div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <h3>Solde disponible</h3>
+      <div class="balance" id="balance">0,00 €</div>
+      <div class="iban" id="iban"></div>
+      <div class="actions">
+        <button class="btn ghost" id="btnSend">➡️ Envoyer</button>
+        <button class="btn ghost" id="btnShow">👁️ Afficher/masquer la carte</button>
+      </div>
+    </div>
+
+    <div class="card-panel">
+      <h3>Ma carte <small style="font-weight:400">(clique pour retourner)</small></h3>
+      <div class="scene">
+        <div class="flip" id="flip">
+          <div class="face front">
+            <div class="brand">NOVA</div>
+            <div class="chip"></div>
+            <div class="num" id="cNum"></div>
+            <div class="meta">
+              <div>Titulaire<b id="cName"></b></div>
+              <div>Expire<b id="cExp"></b></div>
+            </div>
+          </div>
+          <div class="face bk">
+            <div class="strip"></div>
+            <div class="sig"><div class="sg" id="cSig"></div><div class="cvv" id="cCvv"></div></div>
+            <div class="note2">Carte NovaBank — utilisable uniquement sur NovaBank.</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Carte utilisable uniquement sur NovaBank</div>
+    </div>
+
+    <div class="panel">
+      <h3>Contacts</h3>
+      <div class="contacts" id="contacts"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Historique</h3>
+      <div id="history"></div>
+    </div>
+  </main>
+</section>
+
+<div id="modalRoot"></div>
+<script src="app.js"></script>
+</body>
+</html>
