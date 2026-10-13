@@ -115,17 +115,39 @@ h3{font-size:15px;color:var(--mut);font-weight:600;margin-bottom:14px}
 .vi{animation:vin .6s cubic-bezier(.2,.9,.3,1)}
 @keyframes vin{from{opacity:0;transform:perspective(1200px) rotateX(-12deg) translateY(36px) scale(.97)}}
 @media(max-width:900px){#auth .box{order:-1}#c3a{height:240px}}
+.cov{height:150px;border-radius:14px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:68px;box-shadow:inset 0 -40px 60px -30px #0008}
+.its{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.it{background:var(--panel2);border-radius:14px;padding:10px;text-align:center;position:relative;font-size:14px}
+.it .pi{height:92px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:46px;background:var(--bg);margin-bottom:8px}.it img{width:100%;height:100%;object-fit:cover}
+.modal .found .cov{height:120px}
+.logo{perspective:260px}.coin3{display:inline-block;width:24px;height:24px;margin-right:8px;vertical-align:-4px;animation:spin 2.6s linear infinite}
+.coin3::before{content:"\20AC";display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff0a8,#c9962b);color:#8a5f10;font-weight:800;font-size:14px;box-shadow:inset 0 0 0 2px #8a5f10,0 0 12px #f6d36588}
+@keyframes spin{to{transform:rotateY(360deg)}}
+.panel,.ct,.it{position:relative}
+.panel::after,.ct::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at var(--mx,50%) var(--my,0%),#ffffff2a,transparent 55%);opacity:0;transition:opacity .2s;pointer-events:none}
+.tt{box-shadow:0 40px 60px -20px #000c,inset 0 1px 0 #ffffff22!important}.tt::after{opacity:1}
+.tx{animation:txin .6s cubic-bezier(.2,.9,.3,1) both}.tx:nth-child(2){animation-delay:.05s}.tx:nth-child(3){animation-delay:.1s}.tx:nth-child(4){animation-delay:.15s}.tx:nth-child(5){animation-delay:.2s}
+@keyframes txin{from{opacity:0;transform:perspective(600px) rotateX(-40deg) translateY(20px)}}
+.it .pi{transition:transform 1s}.it:hover .pi{transform:perspective(300px) rotateY(360deg)}
+.car{perspective:1100px;height:370px;margin:10px 0 6px;touch-action:pan-y;user-select:none}
+.ring{position:relative;width:240px;height:290px;margin:40px auto 0;transform-style:preserve-3d;transform:translateZ(-480px) rotateY(var(--ry,0deg));transition:transform .9s cubic-bezier(.2,.9,.3,1)}
+.fc{position:absolute;inset:0;transform:rotateY(calc(var(--i)*30deg)) translateZ(480px);cursor:pointer}
+.fi{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,1.2,.5,1)}.fc.flip .fi{transform:rotateY(180deg)}
+.ff,.fb{position:absolute;inset:0;border-radius:20px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:22px;display:flex;flex-direction:column;justify-content:center;gap:12px;box-shadow:0 30px 40px -15px #000b,inset 0 1px 0 #fff5}
+.ff{background:linear-gradient(145deg,hsl(calc(var(--i)*30),70%,52%),hsl(calc(var(--i)*30 + 40),70%,30%));color:#fff;font-weight:700;font-size:18px}.ff b{font-size:54px;opacity:.35;line-height:1}
+.fb{transform:rotateY(180deg);background:var(--panel2);font-size:15px;line-height:1.5;border:1px solid var(--line)}
 </style></head><body>
-<section id="auth"><div class="ahero"><div id="c3a" class="c3d tall"></div><div class="note">Glisse la carte · ta future NovaBank</div></div><div class="box"><div class="logo">Nova<span>Bank</span></div>
+<section id="auth"><div class="ahero"><div id="c3a" class="c3d tall"></div><div class="note">Glisse la carte · ta future NovaBank</div></div><div class="box"><div class="logo"><i class="coin3"></i>Nova<span>Bank</span></div>
 <div class="tabs"><button id="tL" class="on">Connexion</button><button id="tS">Ouvrir un compte</button></div>
 <div id="fL"><label>Nom d'utilisateur</label><input id="lU"><label>Mot de passe</label><input id="lP" type="password"><button class="btn" id="bL">Se connecter</button></div>
 <div id="fS" class="hidden"><div class="row"><div><label>Prénom</label><input id="sF"></div><div><label>Nom</label><input id="sN"></div></div><label>Nom d'utilisateur</label><input id="sU"><label>Mot de passe</label><input id="sP" type="password"><button class="btn" id="bS">Ouvrir mon compte</button></div>
 <div class="err" id="ae"></div></div></section>
-<section id="app" class="hidden"><aside><div class="logo">Nova<span>Bank</span></div><button class="nav gift hidden" id="gift" data-act="gift">🎁<span class="t">Se donner de l'argent</span></button>
+<section id="app" class="hidden"><aside><div class="logo"><i class="coin3"></i>Nova<span>Bank</span></div>
 <button class="nav" data-act="go" data-v="home">🏠<span class="t">Accueil</span></button>
 <button class="nav" data-act="go" data-v="cards">💳<span class="t">Ma carte</span></button>
 <button class="nav" data-act="go" data-v="transfer">🔁<span class="t">Virement</span></button>
 <button class="nav" data-act="go" data-v="contacts">👥<span class="t">Bénéficiaires</span></button>
+<button class="nav" data-act="go" data-v="shop">🛍️<span class="t">Mon shop</span></button>
 <button class="nav" data-act="go" data-v="history">📄<span class="t">Opérations</span></button>
 <button class="nav" data-act="go" data-v="help">❓<span class="t">Aide</span></button>
 <div class="spacer"></div><button class="nav" data-act="go" data-v="settings">⚙️<span class="t">Paramètres</span></button></aside>
