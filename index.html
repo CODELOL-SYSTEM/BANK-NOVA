@@ -156,6 +156,16 @@ label.up{display:block;border:2px dashed #4a5290;border-radius:14px;padding:22px
 .crow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}.crow:hover{background:#ffffff08}.ci{flex:1;min-width:0}
 .avatar,.av{overflow:hidden}.avatar img,.av img{width:100%;height:100%;object-fit:cover;display:block}
 .pf{display:block;text-align:center;cursor:pointer;margin:0;font-size:13px;color:var(--mut)}.av.big{width:88px;height:88px;font-size:34px;margin-bottom:6px}
+@media(prefers-color-scheme:light){:root{}}
+:root[data-mode="dark"]{--bg:#0f1220;--g:#262b55;--panel:#171b2e;--panel2:#1f2440;--txt:#eef0ff;--mut:#8b91b8;--line:#262c50;--bd:#2c3258}
+:root[data-mode="light"]{--bg:#eef1f8;--g:#d9e1ff;--panel:#fff;--panel2:#f0f3fb;--txt:#0d1226;--mut:#5d6785;--line:#dde3f2;--bd:#d3daee}
+body.hidebal .balance,body.hidebal .ab{filter:blur(9px)}body.maskid .iban,body.maskid .num,body.maskid .note.iban{filter:blur(5px)}
+body.noanim *{animation:none!important;transition:none!important}
+body.noglass .panel,body.noglass .box,body.noglass aside{backdrop-filter:none!important;background:var(--panel)!important}
+body.compact .panel{padding:14px}body.compact .tx{padding:8px 0}
+.sctl{display:flex;align-items:center;gap:8px}.sctl input[type=range]{width:130px;padding:0}.sctl select{width:auto;padding:8px 10px}.sctl input[type=number],.sctl input:not([type]){width:130px;padding:8px 10px}.sctl input[type=color]{width:48px;height:36px;padding:2px}.sctl b{font-size:12px;min-width:30px}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.sty{border-radius:14px;padding:14px;color:#fff;font-weight:700;cursor:pointer;border:3px solid transparent;font-size:13px;text-shadow:0 1px 2px #0007;min-height:78px;display:flex;align-items:flex-end;transition:transform .15s}.sty:hover{transform:translateY(-3px) rotateX(8deg)}.sty.on{border-color:#fff;box-shadow:0 0 0 2px var(--acc)}
+.qty{position:absolute;top:6px;left:8px;background:var(--acc);color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;z-index:2}
 </style></head><body>
 <section id="auth"><div class="ahero"><div id="c3a" class="c3d tall"></div><div class="note">Votre carte NovaBank · Espace client sécurisé</div></div><div class="box"><div class="logo"><i class="coin3"></i>Nova<span>Bank</span></div>
 <div class="note" style="margin-top:6px">Espace client · 🔒 Connexion sécurisée</div><div class="tabs"><button id="tL" class="on">Connexion</button><button id="tS">Devenir client</button></div>
@@ -168,9 +178,12 @@ label.up{display:block;border:2px dashed #4a5290;border-radius:14px;padding:22px
 <button class="nav" data-act="go" data-v="transfer">🔁<span class="t">Virement</span></button>
 <button class="nav" data-act="go" data-v="contacts">👥<span class="t">Contacts</span></button>
 <button class="nav" data-act="go" data-v="shop">🛍️<span class="t">Mon shop</span></button>
+<button class="nav" data-act="go" data-v="inv">🎒<span class="t">Inventaire</span></button>
+<button class="nav" data-act="go" data-v="savings">🐷<span class="t">Épargne</span></button>
 <button class="nav" data-act="go" data-v="history">📄<span class="t">Opérations</span></button>
+<button class="nav" data-act="go" data-v="docs">📄<span class="t">Documents</span></button>
 <button class="nav" data-act="go" data-v="help">❓<span class="t">Aide</span></button>
-<div class="spacer"></div><button class="nav" data-act="go" data-v="settings">⚙️<span class="t">Paramètres</span></button></aside>
+<div class="spacer"></div><button class="nav" data-act="go" data-v="theme">🎨<span class="t">Apparence</span></button><button class="nav" data-act="go" data-v="settings">⚙️<span class="t">Paramètres</span></button></aside>
 <div class="content"><div class="top"><h1 id="title"></h1><div class="who"><button class="bell" data-act="bell">🔔<span class="dot hidden" id="dot"></span></button><div id="np" class="hidden"></div><div class="avatar" id="av" data-act="me" style="cursor:pointer" title="Mon profil"></div><button class="btn ghost" data-act="out">Déconnexion</button></div></div><div id="view"></div></div></section>
 <div id="mr"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
